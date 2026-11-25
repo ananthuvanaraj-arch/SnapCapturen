@@ -12,11 +12,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get project
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Extract Android project
         run: |
+          mkdir project
           unzip -q SnapCapture-Android-Starter.zip -d project
 
       - name: Install Java
@@ -29,6 +29,26 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+
+      - name: Fix Java Kotlin compatibility
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("project/app/build.gradle.kts")
+          s = p.read_text()
+          s = s.replace(
+              '    buildFeatures { compose = true }',
+              '''    compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions {
+                  jvmTarget = "17"
+              }
+              buildFeatures { compose = true }'''
+          )
+          p.write_text(s)
+          PY
 
       - name: Compile APK
         working-directory: project
